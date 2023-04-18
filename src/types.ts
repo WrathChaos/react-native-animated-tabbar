@@ -129,7 +129,7 @@ export type AnimatedTabBarProps<T extends PresetEnum = 'bubble'> = {
   /**
    * Tabs configurations.
    */
-  tabs: TabsConfig<typeof Presets[T]['$t']>;
+  tabs: TabsConfig<(typeof Presets)[T]['$t']>;
 
   /**
    * Root container style.
@@ -159,7 +159,7 @@ export type AnimatedTabBarViewProps<T extends PresetEnum> = {
   /**
    * Tabs configurations.
    */
-  tabs: TabsConfig<typeof Presets[T]['$t'] & Partial<TabInfo>>;
+  tabs: TabsConfig<(typeof Presets)[T]['$t'] & Partial<TabInfo>>;
 
   /**
    * Animation preset.
@@ -179,5 +179,5 @@ export type AnimatedTabBarViewProps<T extends PresetEnum> = {
   ExtractPresetConfig<T>;
 
 export type ExtractPresetConfig<T extends PresetEnum> = {
-  [k in keyof typeof Presets[T]['$c']]: typeof Presets[T]['$c'][k];
+  [k in keyof (typeof Presets)[T]['$c']]: (typeof Presets)[T]['$c'][k];
 };
