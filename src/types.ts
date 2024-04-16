@@ -1,10 +1,5 @@
-import type {
-  StyleProp,
-  ViewStyle,
-  Insets,
-  Animated as RNAnimated,
-} from 'react-native';
-import type Animated from 'react-native-reanimated';
+import type { StyleProp, ViewStyle, Insets } from 'react-native';
+import type { SharedValue, EasingFunction } from 'react-native-reanimated';
 import type Presets from './presets';
 import type { PresetEnum } from './presets';
 
@@ -34,7 +29,7 @@ export interface TabBarConfigurableProps {
    * Animation easing function.
    * @default Easing.out(Easing.exp)
    */
-  easing?: Animated.EasingFunction;
+  easing?: EasingFunction;
   /**
    * Item padding space.
    * @default PresetConstants
@@ -75,11 +70,7 @@ export type TabBarViewProps<C, T> = {
   /**
    * Selected animated index.
    */
-  selectedIndex: Animated.Value<number>;
-  /**
-   * Callback when animated index change.
-   */
-  animatedOnChange: (index: number) => Animated.Node<number>;
+  selectedIndex: SharedValue<number>;
   /**
    * Tabs configs.
    */
@@ -93,19 +84,12 @@ export type TabBarViewProps<C, T> = {
 
 export interface TabBarItemProps
   extends Required<
-    Omit<
-      TabBarConfigurableProps,
-      | 'itemInnerSpace'
-      | 'itemOuterSpace'
-      | 'onLongPress'
-      | 'duration'
-      | 'easing'
-    >
+    Omit<TabBarConfigurableProps, 'onLongPress' | 'duration' | 'easing'>
   > {
   /**
    * Animated focus value.
    */
-  animatedFocus: Animated.Node<number>;
+  animatedFocus: SharedValue<number>;
   /**
    * Tab index.
    */
@@ -134,9 +118,7 @@ export type AnimatedTabBarProps<T extends PresetEnum = 'bubble'> = {
   /**
    * Root container style.
    */
-  style?:
-    | StyleProp<ViewStyle>
-    | RNAnimated.WithAnimatedValue<StyleProp<ViewStyle>>;
+  style?: StyleProp<ViewStyle>;
 
   /**
    * React Navigation Props

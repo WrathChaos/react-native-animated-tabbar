@@ -1,16 +1,18 @@
 import React, { useMemo, useEffect, useRef } from 'react';
-import Animated from 'react-native-reanimated';
-import { useValue } from 'react-native-redash';
+import Animated, {
+  useSharedValue,
+  useAnimatedReaction,
+  runOnJS,
+} from 'react-native-reanimated';
 import Presets, { PresetEnum } from './presets';
 import type { AnimatedTabBarViewProps } from './types';
 
-const { proc, call } = Animated;
 /**
  * @DEV
  * this is needed for react-native-svg to animate on the native thread.
  * @external (https://github.com/software-mansion/react-native-reanimated/issues/537)
  */
-Animated.addWhitelistedNativeProps({
+Animated.addWhitelistedUIProps({
   width: true,
   stroke: true,
   backgroundColor: true,
@@ -47,7 +49,7 @@ export function AnimatedTabBarView<T extends PresetEnum>(
   }
 
   // variables
-  const selectedIndex = useValue(controlledIndex);
+  const selectedIndex = useSharedValue(controlledIndex);
   const tabs = useMemo(() => {
     return Object.keys(_tabs).map(key => {
       return _tabs[key].title && _tabs[key].key
@@ -62,32 +64,19 @@ export function AnimatedTabBarView<T extends PresetEnum>(
 
   //#region Effects
   const indexRef = useRef(controlledIndex);
-  /**
-   * @DEV
-   * here we listen to the controlled index and update
-   * selectedIndex value.
-   */
+
   useEffect(() => {
-    selectedIndex.setValue(controlledIndex);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    selectedIndex.value = controlledIndex;
   }, [controlledIndex]);
 
-  /**
-   * @DEV
-   * here we listen to selectedIndex and call `onIndexChange`
-   */
-  const animatedOnChange = useMemo(
-    () =>
-      proc((index: number) =>
-        call([index], args => {
-          if (onIndexChange) {
-            indexRef.current = args[0];
-            onIndexChange(args[0]);
-          }
-        })
-      ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+  useAnimatedReaction(
+    () => selectedIndex.value,
+    (current, previous) => {
+      if (current !== previous) {
+        runOnJS(onIndexChange)(current);
+      }
+    },
+    [onIndexChange]
   );
   //#endregion
 
@@ -98,8 +87,6 @@ export function AnimatedTabBarView<T extends PresetEnum>(
     <PresetComponent
       style={style}
       selectedIndex={selectedIndex}
-      animatedOnChange={animatedOnChange}
-      // @ts-ignore
       tabs={tabs}
       itemInnerSpace={itemInnerSpace}
       itemOuterSpace={itemOuterSpace}

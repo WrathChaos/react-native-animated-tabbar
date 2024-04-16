@@ -1,5 +1,5 @@
 import type { TextStyle } from 'react-native';
-import type Animated from 'react-native-reanimated';
+import type { SharedValue } from 'react-native-reanimated';
 import type { TabBarItemProps } from '../../types';
 
 export interface FlashyTabBarConfig {}
@@ -66,9 +66,9 @@ export type FlashyTabBarItemProps = TabBarItemProps & FlashyTabBarItemConfig;
 export interface FlashyTabBarIconProps {
   /**
    * Tab bar item animated focus value.
-   * @type {Animated.Node<number>}
+   * @type {SharedValue<number>}
    */
-  animatedFocus: Animated.Node<number>;
+  animatedFocus: SharedValue<number>;
   /**
    * Tab bar item icon color.
    * @type {string}
