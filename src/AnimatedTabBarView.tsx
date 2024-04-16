@@ -27,7 +27,7 @@ export function AnimatedTabBarView<T extends PresetEnum>(
     onIndexChange,
     onLongPress,
     tabs: _tabs,
-    preset = 'bubble',
+    preset = 'flashy',
     style,
     itemInnerSpace,
     itemOuterSpace,

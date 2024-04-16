@@ -104,7 +104,7 @@ export interface TabBarItemProps
   spacing: TabBarItemSpacing;
 }
 
-export type AnimatedTabBarProps<T extends PresetEnum = 'bubble'> = {
+export type AnimatedTabBarProps<T extends PresetEnum = 'flashy'> = {
   /**
    * Animation preset.
    */
