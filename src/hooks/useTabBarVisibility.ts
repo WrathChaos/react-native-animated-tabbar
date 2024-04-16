@@ -1,73 +1,22 @@
-import { useMemo, useEffect } from 'react';
-import Animated, {
-  block,
-  onChange,
-  stopClock,
-  set,
-  cond,
-  and,
-  not,
-  clockRunning,
-  startClock,
-  timing,
-} from 'react-native-reanimated';
-import { useClock, useValue } from 'react-native-redash';
-import { Easing } from '../utilities';
+import { useEffect } from 'react';
+import { useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 
 export const useTabBarVisibility = (shouldShowTabBar: boolean) => {
-  const _shouldShowTabBar = useValue(shouldShowTabBar ? 1 : 0);
-  const clock = useClock();
-  const shouldAnimate = useValue(0);
-  const state = useMemo(
-    () => ({
-      finished: new Animated.Value(0),
-      frameTime: new Animated.Value(0),
-      position: new Animated.Value(shouldShowTabBar ? 1 : 0),
-      time: new Animated.Value(0),
-    }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
-  const config = useMemo(
-    () => ({
-      toValue: new Animated.Value(0),
-      easing: Easing.linear,
-      duration: 250,
-    }),
-    []
-  );
+  // Shared animated value for the tab bar visibility
+  const position = useSharedValue(shouldShowTabBar ? 1 : 0);
 
-  const finishTiming = useMemo(
-    () => [
-      stopClock(clock),
-      set(state.finished, 0),
-      set(state.frameTime, 0),
-      set(state.time, 0),
-    ],
-    [clock, state]
-  );
-
-  // effects
+  // Effect hook to animate position when shouldShowTabBar changes
   useEffect(() => {
-    _shouldShowTabBar.setValue(shouldShowTabBar ? 1 : 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shouldShowTabBar]);
+    // Animate the position value to 1 or 0 with timing
+    position.value = withTiming(shouldShowTabBar ? 1 : 0, {
+      duration: 250,
+      easing: Easing.linear,
+    });
+  }, [shouldShowTabBar, position]);
 
-  return block([
-    onChange(_shouldShowTabBar, [finishTiming, set(shouldAnimate, 1)]),
+  // The animated style or value can be returned as needed
+  // If you need to use the position value in a style, you can create a derived animated style
+  // Otherwise, returning the position directly is also fine for logic-based operations
 
-    cond(shouldAnimate, [
-      cond(and(not(clockRunning(clock)), not(state.finished)), [
-        set(state.frameTime, 0),
-        set(state.time, 0),
-        set(state.finished, 0),
-        set(config.toValue, _shouldShowTabBar),
-        startClock(clock),
-      ]),
-      timing(clock, state, config),
-      cond(state.finished, [finishTiming, set(shouldAnimate, 0)]),
-    ]),
-
-    state.position,
-  ]);
+  return position;
 };

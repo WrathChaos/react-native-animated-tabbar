@@ -1,28 +1,27 @@
 import React, { useRef } from 'react';
-import type {
-  StyleProp,
-  ViewStyle,
-  LayoutChangeEvent,
-  LayoutRectangle,
-} from 'react-native';
-import Animated, { call } from 'react-native-reanimated';
+import { LayoutChangeEvent, LayoutRectangle, ViewStyle } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedGestureHandler,
+  useAnimatedStyle,
+  useAnimatedReaction,
+  runOnJS,
+} from 'react-native-reanimated';
 import {
   State,
   TapGestureHandler,
   LongPressGestureHandler,
+  GestureHandlerRootView,
 } from 'react-native-gesture-handler';
-import { useValue, useGestureHandler } from 'react-native-redash';
 import { useStableCallback } from '../../hooks';
-
-const { useCode, cond, onChange, eq } = Animated;
 
 interface RawButtonProps {
   index: number;
-  selectedIndex: Animated.Value<number>;
+  selectedIndex: Animated.SharedValue<number>;
   accessibilityLabel: string;
   children: React.ReactNode[] | React.ReactNode;
-  style?: StyleProp<Animated.AnimateStyle<ViewStyle>>;
-  animatedOnChange: (index: number) => Animated.Node<number>;
+  style?: Animated.AnimateStyle<ViewStyle>;
+  animatedOnChange: (index: number) => void;
   onLongPress: (index: number) => void;
   onLayout?: (index: number, layout: LayoutRectangle) => void;
 }
@@ -37,79 +36,70 @@ const RawButton = ({
   onLongPress,
   onLayout,
 }: RawButtonProps) => {
-  // refs
   const rootViewRef = useRef<Animated.View>(null);
   const longPressGestureHandlerRef = useRef<LongPressGestureHandler>(null);
 
-  // tap gesture
-  const tapGestureState = useValue(State.UNDETERMINED);
-  const tapGestureHandler = useGestureHandler({ state: tapGestureState });
-
-  // long press gesture
-  const longPressGestureState = useValue(State.UNDETERMINED);
-  const longPressGestureHandler = useGestureHandler({
-    state: longPressGestureState,
+  // Gesture handlers using Reanimated v3
+  const tapGestureHandler = useAnimatedGestureHandler({
+    onEnd: () => {
+      animatedOnChange(index);
+    },
   });
 
-  // effects
-  useCode(
-    () => [
-      onChange(
-        tapGestureState,
-        cond(eq(tapGestureState, State.END), animatedOnChange(index))
-      ),
-      onChange(
-        longPressGestureState,
-        cond(
-          eq(longPressGestureState, State.ACTIVE),
-          call([], () => {
-            onLongPress(index);
-          })
-        )
-      ),
-      onChange(
-        selectedIndex,
-        call([selectedIndex], args => {
-          // @ts-ignore
-          rootViewRef.current.setNativeProps({
-            accessibilityState: {
-              selected: args[0] === index,
-            },
-          });
-        })
-      ),
-    ],
-    [index]
+  const longPressGestureHandler = useAnimatedGestureHandler({
+    onActive: () => {
+      runOnJS(onLongPress)(index);
+    },
+  });
+
+  // Animated reaction for accessibility changes
+  useAnimatedReaction(
+    () => selectedIndex.value === index,
+    (isSelected, wasSelected) => {
+      if (isSelected !== wasSelected) {
+        runOnJS(rootViewRef.current?.setNativeProps)({
+          accessibilityState: { selected: isSelected },
+        });
+      }
+    }
   );
 
-  // callbacks
+  // Layout handling callback
   const handleContainerLayout = useStableCallback(
     ({ nativeEvent: { layout } }: LayoutChangeEvent) =>
       onLayout && onLayout(index, layout)
   );
 
+  // Animated styles if needed
+  const animatedStyles = useAnimatedStyle(() => {
+    return {
+      // Conditional styles or transitions can be added here
+    };
+  });
+
   return (
-    <TapGestureHandler
-      waitFor={longPressGestureHandlerRef}
-      {...tapGestureHandler}
-    >
-      <Animated.View
-        ref={rootViewRef}
-        accessible={true}
-        accessibilityLabel={accessibilityLabel}
-        accessibilityRole="button"
-        accessibilityComponentType="button"
-        onLayout={handleContainerLayout}
-        style={style}
+    <GestureHandlerRootView>
+      <TapGestureHandler
+        ref={longPressGestureHandlerRef}
+        onHandlerStateChange={tapGestureHandler}
       >
-        <LongPressGestureHandler
-          ref={longPressGestureHandlerRef}
-          {...longPressGestureHandler}
+        <Animated.View
+          ref={rootViewRef}
+          accessible={true}
+          accessibilityLabel={accessibilityLabel}
+          accessibilityRole="button"
+          accessibilityComponentType="button"
+          onLayout={handleContainerLayout}
+          style={[style, animatedStyles]}
         >
-          <Animated.View>{children}</Animated.View>
-        </LongPressGestureHandler>
-      </Animated.View>
-    </TapGestureHandler>
+          <LongPressGestureHandler
+            onHandlerStateChange={longPressGestureHandler}
+          >
+            <Animated.View>{children}</Animated.View>
+          </LongPressGestureHandler>
+        </Animated.View>
+      </TapGestureHandler>
+    </GestureHandlerRootView>
   );
 };
 

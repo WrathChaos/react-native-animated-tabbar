@@ -1,28 +1,16 @@
-import Animated from 'react-native-reanimated';
-import type { TabBarConfigurableProps } from '../types';
+import { useEffect } from 'react';
+import {
+  useSharedValue,
+  withTiming,
+  EasingFunction,
+  SharedValue,
+} from 'react-native-reanimated';
 
-const {
-  block,
-  cond,
-  onChange,
-  Value,
-  Clock,
-  set,
-  eq,
-  neq,
-  not,
-  or,
-  timing,
-  and,
-  startClock,
-  clockRunning,
-  stopClock,
-} = Animated;
-
-interface useTabBarItemFocusTransitionProps
-  extends Required<Pick<TabBarConfigurableProps, 'duration' | 'easing'>> {
+interface useTabBarItemFocusTransitionProps {
   index: number;
-  selectedIndex: Animated.Value<number>;
+  selectedIndex: SharedValue<number>;
+  duration: number;
+  easing: EasingFunction;
 }
 
 export const useTabBarItemFocusTransition = ({
@@ -31,48 +19,17 @@ export const useTabBarItemFocusTransition = ({
   duration,
   easing,
 }: useTabBarItemFocusTransitionProps) => {
-  //#region variables
-  const clock = new Clock();
-  const state = {
-    finished: new Value(0),
-    frameTime: new Value(0),
-    position: new Value(0),
-    time: new Value(0),
-  };
-  const config = {
-    toValue: new Value(0),
-    easing,
-    duration,
-  };
-  //#endregion
+  const position = useSharedValue(0);
 
-  //#region conditions
-  const shouldAnimateIn = and(eq(selectedIndex, index), neq(state.position, 1));
-  const shouldAnimateOut = and(
-    neq(selectedIndex, index),
-    neq(state.position, 0)
-  );
-  const shouldAnimate = or(shouldAnimateIn, shouldAnimateOut);
-  //#endregion
-  const finishTiming = [
-    stopClock(clock),
-    set(state.finished, 0),
-    set(state.frameTime, 0),
-    set(state.time, 0),
-  ];
-  return block([
-    onChange(selectedIndex, finishTiming),
-    cond(shouldAnimate, [
-      cond(and(not(clockRunning(clock)), not(state.finished)), [
-        set(state.frameTime, 0),
-        set(state.time, 0),
-        set(state.finished, 0),
-        set(config.toValue, shouldAnimateIn),
-        startClock(clock),
-      ]),
-      timing(clock, state, config),
-      cond(state.finished, finishTiming),
-    ]),
-    state.position,
-  ]);
+  useEffect(() => {
+    // This logic decides if the item should animate in or out based on the selectedIndex
+    const isSelected = selectedIndex.value === index;
+    position.value = withTiming(isSelected ? 1 : 0, {
+      duration,
+      easing,
+    });
+  }, [index, selectedIndex, duration, easing]);
+
+  // We return the position to be used in animated styles or wherever necessary.
+  return position;
 };
